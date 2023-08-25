@@ -5,6 +5,23 @@ namespace FCCAnalyses{
 
 namespace ReconstructedParticle{
 
+
+sel_electrons::sel_electrons(float arg_min_pt) : m_min_pt(arg_min_pt) {};
+ROOT::VecOps::RVec<edm4hep::ReconstructedParticleData>  sel_electrons::operator() (ROOT::VecOps::RVec<edm4hep::ReconstructedParticleData> in) {
+  ROOT::VecOps::RVec<edm4hep::ReconstructedParticleData> result;
+  result.reserve(in.size());
+  for (size_t i = 0; i < in.size(); ++i) {
+    auto & p = in[i];
+    if (std::sqrt(std::pow(p.momentum.x,2) + std::pow(p.momentum.y,2)) > m_min_pt && fabs(p.type) == 11) {
+      result.emplace_back(p);
+    }
+  }
+  return result;
+}
+
+
+
+
 sel_pt::sel_pt(float arg_min_pt) : m_min_pt(arg_min_pt) {};
 ROOT::VecOps::RVec<edm4hep::ReconstructedParticleData>  sel_pt::operator() (ROOT::VecOps::RVec<edm4hep::ReconstructedParticleData> in) {
   ROOT::VecOps::RVec<edm4hep::ReconstructedParticleData> result;

@@ -35,6 +35,13 @@ namespace ReconstructedParticle{
     float operator() (ROOT::VecOps::RVec<edm4hep::ReconstructedParticleData> in) ;
   };
 
+   /// select ReconstructedParticles Electrons 
+  struct sel_electrons {
+    sel_electrons(float arg_min_pt);
+    float m_min_pt = 1.; //> transverse momentum threshold [GeV]
+    ROOT::VecOps::RVec<edm4hep::ReconstructedParticleData>  operator() (ROOT::VecOps::RVec<edm4hep::ReconstructedParticleData> in);
+  };
+
   /// select ReconstructedParticles with transverse momentum greater than a minimum value [GeV]
   struct sel_pt {
     sel_pt(float arg_min_pt);
