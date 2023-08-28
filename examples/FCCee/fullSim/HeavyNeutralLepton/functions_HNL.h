@@ -136,8 +136,70 @@ Vec_rp dilepton_sys::dilepton_sys::operator()(Vec_rp legs) {
 }    
 
 
+// returns missing energy vector, based on reco particles
+Vec_rp missingEnergy(float ecm, Vec_rp in, float p_cutoff = 0.0) {
+    float px = 0, py = 0, pz = 0, e = 0;
+    for(auto &p : in) {
+        if (std::sqrt(p.momentum.x * p.momentum.x + p.momentum.y*p.momentum.y) < p_cutoff) continue;
+        px += -p.momentum.x;
+        py += -p.momentum.y;
+        pz += -p.momentum.z;
+        e += p.energy;
+    }
+    
+    Vec_rp ret;
+    rp res;
+    res.momentum.x = px;
+    res.momentum.y = py;
+    res.momentum.z = pz;
+    res.energy = ecm-e;
+    ret.emplace_back(res);
+    //std::cout << "missing pt " << std::sqrt(px*px + py*py) << std::endl;
+    return ret;
+}
 
 
+float vertex_r(edm4hep::VertexData vertices){
+    return (std::sqrt( vertices.position.x*vertices.position.x + vertices.position.y*vertices.position.y ));
+}
+
+float vertex_z(edm4hep::VertexData vertices){
+    return  vertices.position.z;
+}
+
+float vertex_dist(edm4hep::VertexData vertices){
+    return (std::sqrt( vertices.position.x*vertices.position.x + vertices.position.y*vertices.position.y + vertices.position.z*vertices.position.z));
+}
+
+float gen_vertex_r(ROOT::VecOps::RVec<edm4hep::MCParticleData> genpart){
+    return (std::sqrt( genpart[0].vertex.x*genpart[0].vertex.x + genpart[0].vertex.y*genpart[0].vertex.y  ));
+}
+
+
+ROOT::VecOps::RVec<float> gen_vertex_Lxyz(ROOT::VecOps::RVec<edm4hep::MCParticleData> in){
+  ROOT::VecOps::RVec<float> result;
+  for (auto & p: in) {
+    float Lxyz = std::sqrt( p.vertex.x*p.vertex.x +  p.vertex.y*p.vertex.y +p.vertex.z*p.vertex.z );
+    result.push_back(Lxyz);
+  }
+  return result;
+}
+
+
+/*ROOT::VecOps::RVec<edm4hep::MCParticleData> MCElectrons_from_HNL(ROOT::VecOps::RVec<edm4hep::MCParticleData> genpart, const ROOT::VecOps::RVec<int> &ind){
+    
+    ROOT::VecOps::RVec<edm4hep::MCParticleData> output;
+    for (size_t i = 0; i < genpart.size(); ++i) {   
+        auto & p = genpart[i];
+        if ( abs(p.PDG) != 11) continue; 
+        for (unsigned j = p.parents_begin; j != p.parents_end; ++j) {
+            int index = ind.at(j);
+            int pdg_parent = genpart.at(index).PDG ;
+            if( pdg_parent == abs(9900012) )  output.push_back(p);
+        }
+    }
+    return output;
+}*/
 
 }}
 

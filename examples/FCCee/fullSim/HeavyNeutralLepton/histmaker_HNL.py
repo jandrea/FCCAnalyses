@@ -46,15 +46,23 @@ intLumi = 150000000 # 150 /ab
 
 # define some binning for various histograms
 #bins_theta_el = (100, -90, 90) 
-bins_theta_el = (100, -5, 5)
-bins_p_el     = (100, 0, 100) # 100 MeV bins
-bins_pt_el    = (100, 0, 100) # 100 MeV bins
-bins_iso = (500, 0, 5)
+
+bin_mcpdg = (101, -50, 50)
+
+bins_theta_el = (50, 0, 3.1415)
+bins_p_el     = (100, 0, 60) # 100 MeV bins
+bins_pt_el    = (100, 0, 60) # 100 MeV bins
+bins_iso = (500, 0, 0.4)
 bins_count = (10, -0.5, 9.5)
 bins_invmass= (100, 0, 100)
+bins_missingPT= (100, 0, 60)
+bins_vertex_r= (100, 0, 100)
+bins_vertex_z= (100, 0, 100)
+bins_vertex_dist= (100, 0, 70)
 
 
-
+bins_vertex_x_all= (100, 0, 70)
+bins_vertex_Lxyz_all= (100, 0, 70)
 
 # build_graph function that contains the analysis logic, cuts and histograms (mandatory)
 def build_graph(df, dataset):
@@ -66,14 +74,71 @@ def build_graph(df, dataset):
     print(58)
     # define some aliases to be used later on
     
+    #Pandora PF particles
     df = df.Alias("ReconstructedParticles", "PandoraPFOs")
-    #df = df.Alias("ReconstructedParticles", "LooseSelectedPandoraPFOs")
+    #MC particles particles
+    df = df.Alias("GenParticles", "MCParticles")
     
+    df = df.Define("MC_pdgs", "MCParticle::get_pdg(MCParticles)")
+
+    results.append(df.Histo1D(("MC_pdgs_distrib",     "", *bin_mcpdg),     "MC_pdgs"    ))
+
+
+    df = df.Define("MC_electrons", "FCCAnalyses::MCParticle::sel_pdgID(11, true) (MCParticles)")
+    df = df.Define("MC_electrons_status1", "FCCAnalyses::MCParticle::sel_genStatus(1) (MC_electrons)")
+
+    df = df.Define("MC_electrons_p",     "FCCAnalyses::MCParticle::get_p(MC_electrons_status1)")
+    df = df.Define("MC_electrons_pt",    "FCCAnalyses::MCParticle::get_pt(MC_electrons_status1)")
+    df = df.Define("MC_electrons_theta", "FCCAnalyses::MCParticle::get_theta(MC_electrons_status1)")
+
+    results.append(df.Histo1D(("MC_electrons_p",     "", *bins_p_el),     "MC_electrons_p"    ))
+    results.append(df.Histo1D(("MC_electrons_pt",    "", *bins_pt_el),    "MC_electrons_pt"   ))
+    results.append(df.Histo1D(("MC_electrons_theta", "", *bins_theta_el), "MC_electrons_theta"))
+    
+
+    ## test of particule vertex position (initial for electrons)
+    df = df.Define("gen_Vertex_x_distrib_all", "FCCAnalyses::MCParticle::get_vertex_x(MCParticles)")
+    results.append(df.Histo1D(("gen_Vertex_x_distrib_all", "",    *bins_vertex_x_all),    "gen_Vertex_x_distrib_all")) 
+    #df = df.Define("gen_Vertex_x_distrib_electrons_status3", "FCCAnalyses::MCParticle::get_vertex_x(MC_electrons_status1)")
+    df = df.Define("MC_electrons_status23", "FCCAnalyses::MCParticle::sel_genStatus(23) (MC_electrons)")
+    df = df.Define("gen_Vertex_x_distrib_electrons_status23", "FCCAnalyses::MCParticle::get_vertex_x(MC_electrons_status23)")
+    results.append(df.Histo1D(("gen_Vertex_x_distrib_fromHNL", "",    *bins_vertex_x_all),    "gen_Vertex_x_distrib_electrons_status23")) 
+
+    df = df.Define("gen_vertex_Lxyz", "FCCAnalyses::HNLfunctions::gen_vertex_Lxyz(MC_electrons_status23)")
+    results.append(df.Histo1D(("gen_Vertex_Lxyz_distrib_fromHNL", "",    *bins_vertex_Lxyz_all),    "gen_vertex_Lxyz")) 
+
+    
+    #df = df.Define("MCParents_Ind", "_MCParticles_parents")
+    #df = df.Define("MCElectrons_from_HNL", "FCCAnalyses::HNLfunctions::MCElectrons_from_HNL(MCParticles, MCParents_Ind)")
+    #df = df.Define("gen_Vertex_x_distrib_fromHNL", "FCCAnalyses::MCParticle::get_vertex_x(MCElectrons_from_HNL)")
+    
+    #results.append(df.Histo1D(("gen_Vertex_x_distrib_fromHNL", "",    *bins_vertex_x_all),    "gen_Vertex_x_distrib_fromHNL")) 
+
+
+
+    ## look at HNL particles
+    df = df.Define("MC_HNL", "FCCAnalyses::MCParticle::sel_pdgID(9900012, true) (MCParticles)")
+
+    df = df.Define("MC_HNL_p",     "FCCAnalyses::MCParticle::get_p(MC_HNL)")
+    df = df.Define("MC_HNL_pt",    "FCCAnalyses::MCParticle::get_pt(MC_HNL)")
+    df = df.Define("MC_HNL_theta", "FCCAnalyses::MCParticle::get_theta(MC_HNL)")
+
+    results.append(df.Histo1D(("MC_HNL_p",     "", *bins_p_el),     "MC_HNL_p"    ))
+    results.append(df.Histo1D(("MC_HNL_pt",    "", *bins_pt_el),    "MC_HNL_pt"   ))
+    results.append(df.Histo1D(("MC_HNL_theta", "", *bins_theta_el), "MC_HNL_theta"))
+    
+    df = df.Define("MC_HNL_vertex_r", "FCCAnalyses::HNLfunctions::gen_vertex_r (MC_electrons_status1)")
+    results.append(df.Histo1D(("gen_Vertex_r_distrib", "",    *bins_vertex_r),    "MC_HNL_vertex_r")) 
+
+
+    df = df.Define("MC_HNL_vertex_x", "FCCAnalyses::MCParticle::get_vertex_x(MC_electrons_status1)")
+    results.append(df.Histo1D(("gen_Vertex_x_distrib", "",    *bins_vertex_r),    "MC_HNL_vertex_x")) 
+
+
+
+    ##look aat reco objects
     #df = df.Define("RecoElectrons",    "ReconstructedParticle::sel_type(13, true) ( ReconstructedParticles )")
-    df = df.Define("electrons_all", "ReconstructedParticle::sel_electrons(1) ( ReconstructedParticles )")
-    
-    df = df.Define("electrons_neg", "ReconstructedParticle::sel_charge_sign(-1) ( electrons_all )")
-    df = df.Define("electrons_pos", "ReconstructedParticle::sel_charge_sign( 1) ( electrons_all )")
+    df = df.Define("electrons_all", "ReconstructedParticle::sel_electrons(0) ( ReconstructedParticles )")
     
     
     #df = df.Alias("Electron0", "Electron#0.index")
@@ -133,5 +198,49 @@ def build_graph(df, dataset):
 
 
     results.append(df.Histo1D(("electrons_invmass",    "", *bins_invmass),    "electrons_invmass"))
+
+
+
+    #########
+    ### CUT 3: Z mass window
+    #########  
+    df = df.Filter("electrons_invmass < 86 || electrons_invmass > 96")
+    df = df.Define("cut3", "3")
+    results.append(df.Histo1D(("cutFlow", "", *bins_count), "cut3"))
+
+
+    df = df.Define("missingEnergy",       "FCCAnalyses::HNLfunctions::missingEnergy(91., ReconstructedParticles)")
+    df = df.Define("missingEnergy_pt",    "FCCAnalyses::ReconstructedParticle::get_pt(missingEnergy)")
+
+    #results.append(df.Histo1D(("missingEnergy_pt", "", *bins_missingPT), "missingEnergy_pt")) # plot it before the cut
+    results.append(df.Histo1D(("missingEnergy_pt", "", *bins_missingPT), "missingEnergy_pt")) # plot it before the cut
+
+
+
+    #########
+    ### CUT 4: missing Et Cuts
+    #########  
+    #df = df.Filter("missingEnergy_pt > 86")
+    #df = df.Define("cut4", "4")
+    #results.append(df.Histo1D(("cutFlow", "", *bins_count), "cut4"))
+
+
+    #df = df.Alias("ReconstructedTracks", "SiTracks_Refitted_trackStates")
+    df = df.Alias("ReconstructedTracks", "_SiTracks_Refitted_trackStates")
+    df = df.Define("trackStates_electrons", "FCCAnalyses::ReconstructedParticle2Track::getRP2TRK(electrons, ReconstructedTracks)")
+
+    #vertex reconstruction, first attempts...
+    df = df.Define("VertexObject_DiElectrons",  "FCCAnalyses::VertexFitterSimple::VertexFitter ( 1, electrons, trackStates_electrons) ")
+    df = df.Define("Vertex",   "VertexingUtils::get_VertexData( VertexObject_DiElectrons )")   # primary vertex, in mm
+
+
+    df = df.Define("Vertex_r",      "FCCAnalyses::HNLfunctions::vertex_r(Vertex)")   # primary vertex, in mm
+    df = df.Define("Vertex_z",      "FCCAnalyses::HNLfunctions::vertex_z(Vertex)")   # primary vertex, in mm
+    df = df.Define("Vertex_dist",   "FCCAnalyses::HNLfunctions::vertex_dist(Vertex)")   # primary vertex, in mm
+
+    #results.append(df.Histo1D(("Vertex_r_distrib", "",    *bins_vertex_r),    "Vertex_r")) 
+    #results.append(df.Histo1D(("Vertex_z_distrib", "",    *bins_vertex_z),    "Vertex_z")) 
+    #results.append(df.Histo1D(("Vertex_dist_distrib", "", *bins_vertex_dist), "Vertex_dist")) 
+
 
     return results, weightsum
